@@ -1,0 +1,17 @@
+
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: ragdocqa-db
+    environment:
+      POSTGRES_USER: ragdocqa
+      POSTGRES_PASSWORD: ragdocqa
+      POSTGRES_DB: ragdocqa
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    
