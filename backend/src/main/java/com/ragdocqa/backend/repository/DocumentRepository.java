@@ -9,6 +9,8 @@ import com.ragdocqa.backend.model.Document;
 
 public interface DocumentRepository extends JpaRepository<Document, Long>{
 
-    List<Document> findAllByOrderByUploadedAtDesc();
+    //List<Document> findAllByOrderByUploadedAtDesc();
+    List<Document> findAllByOrderByUploadedAtDescIdDesc();
+
     
 }

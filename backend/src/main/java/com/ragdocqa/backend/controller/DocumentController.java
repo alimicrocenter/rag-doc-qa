@@ -23,7 +23,7 @@ public class DocumentController {
 
     @GetMapping
     public List<DocumentResponse> list(){  
-        return documentRepository.findAllByOrderByUploadedAtDesc()
+        return documentRepository.findAllByOrderByUploadedAtDescIdDesc()
         .stream()
         .map(DocumentResponse::from)
         .toList();
