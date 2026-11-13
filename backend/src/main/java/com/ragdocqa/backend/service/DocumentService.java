@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -17,16 +18,21 @@ import org.springframework.web.server.ResponseStatusException;
 import com.ragdocqa.backend.model.Document;
 import com.ragdocqa.backend.model.DocumentStatus;
 import com.ragdocqa.backend.repository.DocumentRepository;
+
+import lombok.extern.slf4j.Slf4j;
 @Service
+@Slf4j
 public class DocumentService {
     
     private static final byte[] PDF_MAGIC = "%PDF-".getBytes(StandardCharsets.US_ASCII);
 
     private final DocumentRepository documentRepository;
+    private final PdfTextExtractor pdfTextExtractor;
     private final Path uploadDir;
 
-    public DocumentService(DocumentRepository documentRepository, @Value("${app.storage.upload-dir}") String uploadDir){  
+    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, @Value("${app.storage.upload-dir}") String uploadDir) {  
         this.documentRepository = documentRepository;
+        this.pdfTextExtractor = pdfTextExtractor;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -47,8 +53,24 @@ public class DocumentService {
         documentRepository.save(doc);
 
         Files.createDirectories(uploadDir);
-        file.transferTo(uploadDir.resolve(doc.getId() + ".pdf"));
+
+        Path savedFile = uploadDir.resolve(doc.getId() + ".pdf");
+        file.transferTo(savedFile);
+
+        List<String> pages = pdfTextExtractor.extractPages(savedFile);
+        doc.setPageCount(pages.size());
+
+        for(int i = 0;  i < pages.size(); i++){  
+            String text = pages.get(i);
+            log.info("Document {} page {} ({} chars): {}",
+             doc.getId(), 
+             i + 1, text.length(), 
+             text.substring(0, Math.min(200, text.length())));
+        }
+
         return doc;
+        // file.transferTo(uploadDir.resolve(doc.getId() + ".pdf"));
+        // return doc;
 
         
     }
