@@ -11,7 +11,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -36,7 +35,6 @@ public class DocumentService {
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
-    @Transactional(rollbackFor = IOException.class)
     public Document upload(MultipartFile file) throws IOException{
 
         if(file.isEmpty()){  
@@ -50,29 +48,46 @@ public class DocumentService {
         Document doc = new Document();
         doc.setFilename(file.getOriginalFilename() !=null ? file.getOriginalFilename() : "unnamed.pdf");
         doc.setStatus(DocumentStatus.UPLOADED);
-        documentRepository.save(doc);
+        doc = documentRepository.save(doc);
 
         Files.createDirectories(uploadDir);
+        try {
+            file.transferTo(filePath(doc));
+        } catch (IOException e){
+            documentRepository.delete(doc);
+            throw e;
 
-        Path savedFile = uploadDir.resolve(doc.getId() + ".pdf");
-        file.transferTo(savedFile);
-
-        List<String> pages = pdfTextExtractor.extractPages(savedFile);
-        doc.setPageCount(pages.size());
-
-        for(int i = 0;  i < pages.size(); i++){  
-            String text = pages.get(i);
-            log.info("Document {} page {} ({} chars): {}",
-             doc.getId(), 
-             i + 1, text.length(), 
-             text.substring(0, Math.min(200, text.length())));
         }
 
-        return doc;
-        // file.transferTo(uploadDir.resolve(doc.getId() + ".pdf"));
-        // return doc;
-
+        return process(doc);
         
+    }
+
+    private Document process(Document doc) {  
+        doc.setStatus(DocumentStatus.PROCESSING);
+        doc = documentRepository.save(doc);
+
+        try{
+            List<String> pages = pdfTextExtractor.extractPages(filePath(doc));
+            doc.setPageCount(pages.size());
+
+            for(int i = 0; i < pages.size(); i++){  
+                String text = pages.get(i);
+                log.info("Document {} page {} ({} char): {}", doc.getId(), i + 1, text.length(), text.substring(0, Math.min(200, text.length())));
+            }
+
+            doc.setStatus(DocumentStatus.READY);
+        }
+        catch (Exception e){
+            log.warn("Processing failed for document {}", doc.getId(), e);
+            doc.setStatus(DocumentStatus.FAILED);
+        }
+
+        return documentRepository.save(doc);
+    }
+
+    private Path filePath(Document doc){  
+        return uploadDir.resolve(doc.getId() + ".pdf");
     }
 
     private boolean isPdf(MultipartFile file) throws IOException{  
