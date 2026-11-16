@@ -26,11 +26,13 @@ public class DocumentService {
 
     private final DocumentRepository documentRepository;
     private final PdfTextExtractor pdfTextExtractor;
+    private final TextChunker textChunker;
     private final Path uploadDir;
 
-    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, @Value("${app.storage.upload-dir}") String uploadDir) {  
+    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, TextChunker textChunker, @Value("${app.storage.upload-dir}") String uploadDir) {  
         this.documentRepository = documentRepository;
         this.pdfTextExtractor = pdfTextExtractor;
+        this.textChunker = textChunker;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -70,10 +72,16 @@ public class DocumentService {
             List<String> pages = pdfTextExtractor.extractPages(filePath(doc));
             doc.setPageCount(pages.size());
 
-            for(int i = 0; i < pages.size(); i++){  
-                String text = pages.get(i);
-                log.info("Document {} page {} ({} char): {}", doc.getId(), i + 1, text.length(), text.substring(0, Math.min(200, text.length())));
-            }
+           List<org.springframework.ai.document.Document> chunks = textChunker.chunk(doc.getId(), doc.getFilename(), pages);
+           log.info("Document {}: {} pages -> {} chunks", doc.getId(), pages.size(), chunks.size());
+
+           for(var chunk : chunks){  
+            String text = chunk.getText();
+            log.info("  page {} ({} chars): {}",
+            chunk.getMetadata().get("page"),
+            text.length(),
+            text.substring(0, Math.min(100, text.length())).replaceAll("\\s+", " "));
+           }
 
             doc.setStatus(DocumentStatus.READY);
         }
