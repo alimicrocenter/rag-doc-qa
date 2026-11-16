@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
 import com.ragdocqa.backend.dto.DocumentResponse;
+import com.ragdocqa.backend.exception.DocumentNotFoundException;
 import com.ragdocqa.backend.repository.DocumentRepository;
 import com.ragdocqa.backend.service.DocumentService;
 
@@ -52,8 +52,7 @@ public class DocumentController {
     public DocumentResponse get(@PathVariable Long id) {
         return documentRepository.findById(id)
                 .map(DocumentResponse::from)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Document " + id + " not found"));
+                .orElseThrow(() -> new DocumentNotFoundException(id));
     }
     
 }

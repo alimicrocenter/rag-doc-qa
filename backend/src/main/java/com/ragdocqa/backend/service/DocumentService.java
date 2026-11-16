@@ -9,11 +9,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Value;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.ragdocqa.backend.exception.InvalidFileException;
 import com.ragdocqa.backend.model.Document;
 import com.ragdocqa.backend.model.DocumentStatus;
 import com.ragdocqa.backend.repository.DocumentRepository;
@@ -38,11 +37,11 @@ public class DocumentService {
     public Document upload(MultipartFile file) throws IOException{
 
         if(file.isEmpty()){  
-            throw new ResponseStatusException(BAD_REQUEST, "File is empty");
+            throw new InvalidFileException( "File is empty");
         }
 
         if(!isPdf(file)){ 
-            throw new ResponseStatusException(BAD_REQUEST, "Only PDF files are allowed");
+            throw new InvalidFileException("Only PDF files are allowed");
         }
 
         Document doc = new Document();
