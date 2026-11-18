@@ -14,12 +14,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler{
     
     
     @ExceptionHandler(DocumentNotFoundException.class)
-    public ProblemDetail HandleNotFound(DocumentNotFoundException ex) {  
+    public ProblemDetail handleNotFound(DocumentNotFoundException ex) {  
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(InvalidFileException.class)
-    public ProblemDetail HandleInvalidFile(InvalidFileException ex) {  
+    public ProblemDetail handleInvalidFile(InvalidFileException ex) {  
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 

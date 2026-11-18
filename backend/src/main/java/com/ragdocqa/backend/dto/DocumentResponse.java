@@ -11,7 +11,8 @@ public record DocumentResponse(
     String filename,
     DocumentStatus status,
     Integer pageCount,
-    Instant uploadedAt
+    Instant uploadedAt,
+    String errorMessage
 ){  
     public static DocumentResponse from(Document doc){
         return new DocumentResponse(
@@ -19,7 +20,8 @@ public record DocumentResponse(
             doc.getFilename(),
             doc.getStatus(),
             doc.getPageCount(),
-            doc.getUploadedAt()
+            doc.getUploadedAt(),
+            doc.getErrorMessage()
         );
     }
 }

@@ -76,7 +76,8 @@ public class DocumentService {
 
            if(chunks.isEmpty()){  
             throw new IllegalStateException(  
-                "No extracted text found in " + pages.size() + "pages. The PDF may be scanned (image-only) and would need OCR"
+               "No text found in " + pages.size() + " pages. The PDF may be a scanned image and would need OCR."
+
             );
            }
 
@@ -92,10 +93,18 @@ public class DocumentService {
 
             doc.setStatus(DocumentStatus.READY);
         }
-        catch (Exception e){
+        catch (IllegalStateException e){
+           log.warn("Processing failed for document {}: {}", doc.getId(), e.getMessage());
+           doc.setStatus(DocumentStatus.FAILED);
+           doc.setErrorMessage(e.getMessage());
+        }
+        catch(Exception e){  
             log.warn("Processing failed for document {}", doc.getId(), e);
             doc.setStatus(DocumentStatus.FAILED);
+            doc.setErrorMessage("Could not read this PDF. The file may be damaged or password-protected");
+
         }
+
 
         return documentRepository.save(doc);
     }
