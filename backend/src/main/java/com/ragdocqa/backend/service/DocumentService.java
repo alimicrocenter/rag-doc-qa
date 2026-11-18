@@ -73,6 +73,13 @@ public class DocumentService {
             doc.setPageCount(pages.size());
 
            List<org.springframework.ai.document.Document> chunks = textChunker.chunk(doc.getId(), doc.getFilename(), pages);
+
+           if(chunks.isEmpty()){  
+            throw new IllegalStateException(  
+                "No extracted text found in " + pages.size() + "pages. The PDF may be scanned (image-only) and would need OCR"
+            );
+           }
+
            log.info("Document {}: {} pages -> {} chunks", doc.getId(), pages.size(), chunks.size());
 
            for(var chunk : chunks){  
