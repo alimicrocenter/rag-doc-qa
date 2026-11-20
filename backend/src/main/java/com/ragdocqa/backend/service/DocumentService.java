@@ -8,6 +8,9 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
+
+import org.springframework.ai.vectorstore.VectorStore;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,14 +30,14 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final PdfTextExtractor pdfTextExtractor;
     private final TextChunker textChunker;
-    private final ChunkEmbedder chunkEmbedder;
+    private final VectorStore vectorStore;
     private final Path uploadDir;
 
-    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, TextChunker textChunker, ChunkEmbedder chunkEmbedder, @Value("${app.storage.upload-dir}") String uploadDir) {
+    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, TextChunker textChunker, VectorStore vectorStore, @Value("${app.storage.upload-dir}") String uploadDir) {
         this.documentRepository = documentRepository;
         this.pdfTextExtractor = pdfTextExtractor;
         this.textChunker = textChunker;
-        this.chunkEmbedder = chunkEmbedder;
+        this.vectorStore = vectorStore;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -85,19 +88,16 @@ public class DocumentService {
 
            log.info("Document {}: {} pages -> {} chunks", doc.getId(), pages.size(), chunks.size());
 
-           List<float[]> vectors = chunkEmbedder.embed(chunks);
-           log.info("Document {}: embedded {} chunks, {} dimensions each", doc.getId(), vectors.size(), vectors.get(0).length);
+           try {
+            
+            vectorStore.add(chunks);
 
-           for(int i = 0; i < chunks.size(); i++){
-            String text = chunks.get(i).getText();
-            float[] v = vectors.get(i);
-            log.info("  page {} ({} chars) -> [{}, {}, {}, ...]: {}",
-            chunks.get(i).getMetadata().get("page"),
-            text.length(),
-            v[0], v[1], v[2],
-            text.substring(0, Math.min(100, text.length())).replaceAll("\\s+", " "));
+           } catch (RuntimeException e) {
+            throw new IllegalStateException(  
+                "Could not create embeddings. Check that Ollama is running and the bge-m3 model is pulled", e
+            );
            }
-
+           log.info("Document {}: saved {} chunks to vector_store", doc.getId(), chunks.size());
             doc.setStatus(DocumentStatus.READY);
         }
         catch (IllegalStateException e){
