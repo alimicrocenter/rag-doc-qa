@@ -18,7 +18,7 @@ flowchart LR
         QE --> S[Search top<br/>cosine similarity]
         S --> T{score above<br/>threshold?}
         T -->|yes| P[Build prompt<br/>question + chunks]
-        P --> L[LLM<br/>Ollama qwen2.5:7b]
+        P --> L[LLM<br/>Ollama qwen3.5:9b]
         L --> A[Answer + sources]
         T --> |no| N[Not found in<br/>your documents]
     end

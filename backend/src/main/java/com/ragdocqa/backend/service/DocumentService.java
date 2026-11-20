@@ -27,12 +27,14 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final PdfTextExtractor pdfTextExtractor;
     private final TextChunker textChunker;
+    private final ChunkEmbedder chunkEmbedder;
     private final Path uploadDir;
 
-    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, TextChunker textChunker, @Value("${app.storage.upload-dir}") String uploadDir) {  
+    public DocumentService(DocumentRepository documentRepository,  PdfTextExtractor pdfTextExtractor, TextChunker textChunker, ChunkEmbedder chunkEmbedder, @Value("${app.storage.upload-dir}") String uploadDir) {
         this.documentRepository = documentRepository;
         this.pdfTextExtractor = pdfTextExtractor;
         this.textChunker = textChunker;
+        this.chunkEmbedder = chunkEmbedder;
         this.uploadDir = Path.of(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -83,11 +85,16 @@ public class DocumentService {
 
            log.info("Document {}: {} pages -> {} chunks", doc.getId(), pages.size(), chunks.size());
 
-           for(var chunk : chunks){  
-            String text = chunk.getText();
-            log.info("  page {} ({} chars): {}",
-            chunk.getMetadata().get("page"),
+           List<float[]> vectors = chunkEmbedder.embed(chunks);
+           log.info("Document {}: embedded {} chunks, {} dimensions each", doc.getId(), vectors.size(), vectors.get(0).length);
+
+           for(int i = 0; i < chunks.size(); i++){
+            String text = chunks.get(i).getText();
+            float[] v = vectors.get(i);
+            log.info("  page {} ({} chars) -> [{}, {}, {}, ...]: {}",
+            chunks.get(i).getMetadata().get("page"),
             text.length(),
+            v[0], v[1], v[2],
             text.substring(0, Math.min(100, text.length())).replaceAll("\\s+", " "));
            }
 
