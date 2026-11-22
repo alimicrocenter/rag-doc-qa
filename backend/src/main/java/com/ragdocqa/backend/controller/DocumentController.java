@@ -35,7 +35,7 @@ public class DocumentController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseStatus(HttpStatus.ACCEPTED)
     public DocumentResponse upload(@RequestParam("file") MultipartFile file) throws IOException {  
         return DocumentResponse.from(documentService.upload(file));
     }
